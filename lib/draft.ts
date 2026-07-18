@@ -165,6 +165,30 @@ export function getFieldablePool(
   return pool;
 }
 
+export function getRegisteredPool(
+  player: Player,
+  state: DraftState,
+  roster: Map<string, RosterUnit>,
+): { unit: RosterUnit; cons: number }[] {
+  const playerId = player.id;
+  const globallyBanned = new Set(state.globalBans[playerId] ?? []);
+  const charBanned = new Set(state.charBans[playerId] ?? []);
+  const fielded = new Set(
+    (state.fielded[playerId] ?? [])
+      .filter((s) => s.charUnitId)
+      .map((s) => s.charUnitId!),
+  );
+  const pool: { unit: RosterUnit; cons: number }[] = [];
+  for (const reg of player.registration) {
+    if (globallyBanned.has(reg.unitId)) continue;
+    if (charBanned.has(reg.unitId)) continue;
+    if (fielded.has(reg.unitId)) continue;
+    const unit = roster.get(reg.unitId);
+    if (unit) pool.push({ unit, cons: reg.cons });
+  }
+  return pool;
+}
+
 export function getBannableFieldablePool(
   targetPlayer: Player,
   state: DraftState,

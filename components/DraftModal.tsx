@@ -44,6 +44,7 @@ import {
   getFieldablePool,
   getBannableRegisteredChars,
   getBannableFieldablePool,
+  getRegisteredPool,
   getAvailableWeapons,
   emptySlot,
 } from "@/lib/draft";
@@ -453,13 +454,35 @@ function CharBanUI({
   rosterMap: Map<string, RosterUnit>;
   onBan: (unitId: string) => void;
 }) {
-  const pool = getBannableFieldablePool(opponentPlayer, draft, rosterMap);
+  const [showAll, setShowAll] = useState(false);
+  const [elementFilter, setElementFilter] = useState<string | null>(null);
+
+  const allPool = getBannableFieldablePool(opponentPlayer, draft, rosterMap);
+  const regPool = getRegisteredPool(opponentPlayer, draft, rosterMap).map(
+    (p) => p.unit,
+  );
+  const basePool = showAll ? allPool : regPool;
+
+  const elements = useMemo(() => {
+    const s = new Set<string>();
+    for (const u of basePool) if (u.element) s.add(u.element);
+    return [...s].sort();
+  }, [basePool]);
+
+  const elementLabel = (e: string) =>
+    ({ Ice: "Cryo", Fire: "Pyro", Water: "Hydro", Wind: "Anemo", Rock: "Geo", Grass: "Dendro", Electric: "Electro" })[e] ?? e;
+
+  const pool = elementFilter
+    ? basePool.filter((u) => u.element === elementFilter)
+    : basePool;
 
   if (pool.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-4">
-        No characters available to ban from {opponentPlayer.name}.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No characters available to ban from {opponentPlayer.name}.
+        </p>
+      </div>
     );
   }
 
@@ -468,6 +491,48 @@ function CharBanUI({
       <p className="text-sm font-medium">
         Ban a character from {opponentPlayer.name}&apos;s pool:
       </p>
+      <div className="flex flex-wrap items-center gap-1.5 mb-2">
+        <span className="text-xs text-muted-foreground shrink-0">Element:</span>
+        <button
+          onClick={() => setElementFilter(null)}
+          className={cn(
+            "text-xs px-2 py-0.5 rounded-full border transition-colors",
+            !elementFilter
+              ? "bg-primary text-primary-foreground border-primary"
+              : "border-border hover:border-primary",
+          )}
+        >
+          All
+        </button>
+        {elements.map((el) => (
+          <button
+            key={el}
+            onClick={() =>
+              setElementFilter(elementFilter === el ? null : el)
+            }
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full border transition-colors",
+              elementFilter === el
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary",
+            )}
+          >
+            {elementLabel(el)}
+          </button>
+        ))}
+        <Separator orientation="vertical" className="h-4 mx-1" />
+        <button
+          onClick={() => setShowAll((s) => !s)}
+          className={cn(
+            "text-xs px-2 py-0.5 rounded-full border transition-colors",
+            showAll
+              ? "bg-primary text-primary-foreground border-primary"
+              : "border-border hover:border-primary",
+          )}
+        >
+          {showAll ? "All chars" : "Registered 5★"}
+        </button>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {pool.map((unit) => (
           <button
@@ -477,12 +542,12 @@ function CharBanUI({
             title={unit.name}
           >
             <UnitIcon unit={unit} size={28} />
-            <span className="text-xs font-medium">{unit.name}</span>
-            {unit.banner === "limited" && (
-              <Badge variant="outline" className="text-xs px-1">
-                Limited
-              </Badge>
-            )}
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-xs font-medium">{unit.name}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {unit.rank}★ {unit.element ? elementLabel(unit.element) : ""}
+              </span>
+            </div>
           </button>
         ))}
       </div>
@@ -517,15 +582,20 @@ function PickUI({
 
   const curStepIdx = draft.stepIndex;
   const [prevStep, setPrevStep] = useState(curStepIdx);
+  const [showAll, setShowAll] = useState(false);
   if (curStepIdx !== prevStep) {
     setPrevStep(curStepIdx);
     setElementFilter(null);
     setRankFilter(null);
+    setShowAll(false);
   }
 
   const pool = useMemo(
-    () => getFieldablePool(actorPlayer, draft, rosterMap),
-    [actorPlayer, draft, rosterMap],
+    () =>
+      showAll
+        ? getFieldablePool(actorPlayer, draft, rosterMap)
+        : getRegisteredPool(actorPlayer, draft, rosterMap),
+    [actorPlayer, draft, rosterMap, showAll],
   );
 
   const elements = useMemo(() => {
@@ -730,6 +800,18 @@ function PickUI({
             )}
           >
             4★
+          </button>
+          <Separator orientation="vertical" className="h-4 mx-1" />
+          <button
+            onClick={() => setShowAll((s) => !s)}
+            className={cn(
+              "text-xs px-2 py-0.5 rounded-full border transition-colors",
+              showAll
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border hover:border-primary",
+            )}
+          >
+            {showAll ? "All chars" : "Registered 5★"}
           </button>
         </div>
         <div className="relative">

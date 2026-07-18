@@ -31,7 +31,9 @@ export function applyResult(
 
   if (match.round === 1) {
     const winner = t.players.find((p) => p.id === winnerId);
+    const loser = t.players.find((p) => p.id === loserId);
     if (winner) winner.locked = true;
+    if (loser) loser.locked = true;
   }
 
   if (match.feedsInto) {
