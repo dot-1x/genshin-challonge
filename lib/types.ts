@@ -97,6 +97,24 @@ export type Tournament = {
   createdAt: number;
 };
 
+export type DraftSimulation = {
+  id: string;
+  playerAName: string;
+  playerBName: string;
+  playerARegistration: RegisteredChar[];
+  playerBRegistration: RegisteredChar[];
+  draft: DraftState | null;
+  costConfig: CostConfig;
+  createdAt: number;
+};
+
+export type RegistrationPreset = {
+  id: string;
+  name: string;
+  characters: RegisteredChar[];
+  createdAt: number;
+};
+
 export const DEFAULT_COST_CONFIG: CostConfig = {
   maxCost: 7,
   limitedCharBase: 1,

@@ -68,7 +68,7 @@ export function TournamentView({ id }: { id: string }) {
   return (
     <main className="flex-1 w-full flex flex-col">
       <header className="border-b px-4 py-3 sticky top-0 bg-background/95 backdrop-blur z-10">
-        <div className="flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Button render={<Link href="/" />} variant="ghost" size="icon-sm" className="shrink-0">
               <ArrowLeft className="size-4" />
