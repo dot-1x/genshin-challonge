@@ -9,3 +9,5 @@ A **Genshin Impact** tournament bracket simulation and draft pick tool for Spira
 - **Local Storage Persistence** — All brackets and draft history are saved in your browser
 - **Draft Pick Simulator** — Standalone draft simulator for testing team compositions
 
+## Data Source
+data for this site is sourced from `https://gi.yatta.moe/`

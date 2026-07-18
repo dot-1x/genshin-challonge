@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Genshin Spira/Stygian Tournament",
+  title: "Genshin Challonge",
   description: "Genshin Impact challonge bracket with draft pick system",
 };
 

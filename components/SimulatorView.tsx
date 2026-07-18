@@ -263,43 +263,41 @@ export function SimulatorView() {
   const sortedPresets = [...presets].sort((a, b) => b.createdAt - a.createdAt);
 
   return (
-    <main className="flex-1 w-full flex flex-col">
-      <header className="border-b px-4 py-3 sticky top-0 bg-background/95 backdrop-blur z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-lg font-bold">Draft Pick Simulator</h1>
-            <p className="text-xs text-muted-foreground">
-              Plan team compositions with full draft simulation
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setMode("names")}
-            disabled={!roster}
-          >
-            <Plus className="size-4" />
-            New Draft Pick
+    <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Draft Pick Simulator
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Plan team compositions with full draft simulation
+          </p>
+        </div>
+        <Button
+          onClick={() => setMode("names")}
+          disabled={!roster}
+        >
+          <Plus className="size-4" />
+          New Draft Pick
+        </Button>
+      </div>
+
+      {rosterLoading && !roster ? (
+        <div className="flex items-center justify-center h-64 text-muted-foreground">
+          Loading roster...
+        </div>
+      ) : rosterError && !roster ? (
+        <div className="flex flex-col items-center justify-center h-64 gap-3">
+          <p className="text-sm text-destructive">
+            Failed to load roster: {rosterError}
+          </p>
+          <Button variant="outline" onClick={refresh}>
+            Retry
           </Button>
         </div>
-      </header>
-
-      <div className="flex-1 min-h-0">
-        {rosterLoading && !roster ? (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Loading roster...
-          </div>
-        ) : rosterError && !roster ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3">
-            <p className="text-sm text-destructive">
-              Failed to load roster: {rosterError}
-            </p>
-            <Button variant="outline" onClick={refresh}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-            {sortedPresets.length > 0 && (
+      ) : (
+        <div className="space-y-6">
+          {sortedPresets.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Library className="size-4 text-muted-foreground" />
@@ -406,7 +404,6 @@ export function SimulatorView() {
             )}
           </div>
         )}
-      </div>
 
       {/* Names dialog */}
       <Dialog

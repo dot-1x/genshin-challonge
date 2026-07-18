@@ -23,7 +23,7 @@ export default function Home() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Genshin Spira/Stygian Tournament
+            Genshin Challonge
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Bracket history & draft pick system
@@ -45,7 +45,7 @@ export default function Home() {
             <Swords className="size-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-1">No tournaments yet</p>
             <p className="text-sm text-muted-foreground mb-4">
-              Create your first Genshin Spira/Stygian tournament bracket.
+              Create your first Genshin Challonge tournament bracket.
             </p>
             <Button render={<Link href="/new" />}>
               <Plus className="size-4" />

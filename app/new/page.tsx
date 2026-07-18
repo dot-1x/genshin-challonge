@@ -33,7 +33,7 @@ const PLAYER_COUNTS = [2, 4, 8, 16, 32];
 
 export default function NewTournamentPage() {
   const router = useRouter();
-  const [name, setName] = useState("Genshin Spira/Stygian Tournament");
+  const [name, setName] = useState("Genshin Challonge");
   const [format, setFormat] = useState<"single" | "double">("single");
   const [playerCount, setPlayerCount] = useState(8);
   const [maxCost, setMaxCost] = useState(7);
