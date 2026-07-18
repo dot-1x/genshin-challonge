@@ -1,4 +1,4 @@
-import type { Match, MatchSide, Player } from "./types";
+import type { Match, MatchSide, Player, BracketType } from "./types";
 import { shuffle } from "./random";
 
 function singleLabel(round: number, totalRounds: number): string {
@@ -292,10 +292,10 @@ export function generateDoubleElim(players: Player[]): Match[] {
 }
 
 export function generateBracket(
-  format: "single" | "double",
+  format: BracketType,
   players: Player[],
 ): Match[] {
-  return format === "single"
-    ? generateSingleElim(players)
-    : generateDoubleElim(players);
+  return format === "double"
+    ? generateDoubleElim(players)
+    : generateSingleElim(players);
 }

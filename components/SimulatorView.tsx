@@ -99,6 +99,7 @@ function makeTournament(sim: DraftSimulation): Tournament {
     id: "sim-tournament",
     name: `${sim.playerAName} vs ${sim.playerBName}`,
     format: "single",
+    type: "spiral",
     playerCount: 2,
     costConfig: sim.costConfig,
     players: [

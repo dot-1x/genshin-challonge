@@ -26,9 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UnitIcon } from "@/components/UnitIcon";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { CharacterPool, elementLabel, type PoolChar, type PoolFilter } from "@/components/CharacterPool";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { teamCost, slotCost } from "@/lib/cost";
 import {
@@ -41,15 +40,18 @@ import {
   applyGlobalBan,
   applyCharBan,
   applyPick,
-  getFieldablePool,
   getBannableRegisteredChars,
-  getBannableFieldablePool,
   getRegisteredPool,
+  getAllCharsPool,
   getAvailableWeapons,
   emptySlot,
+  getStageCount,
+  getStageFielded,
+  getTotalSteps,
+  getStageNames,
 } from "@/lib/draft";
 import { createDraft } from "@/lib/draft";
-import { Ban, Check, X, Crown, Search, Swords } from "lucide-react";
+import { Ban, Check, X, Crown, Swords } from "lucide-react";
 
 export function DraftModal({
   match,
@@ -68,6 +70,8 @@ export function DraftModal({
 }) {
   const draft = match?.draft ?? null;
   const costConfig = tournament.costConfig;
+  const stageCount = getStageCount(tournament.type);
+  const stageNames = getStageNames(stageCount);
 
   const [pickSlots, setPickSlots] = useState<FieldedSlot[]>([
     emptySlot(),
@@ -75,11 +79,13 @@ export function DraftModal({
   ]);
   const [pickSearch, setPickSearch] = useState("");
   const [prevStepIndex, setPrevStepIndex] = useState(draft?.stepIndex ?? 0);
+  const [viewStage, setViewStage] = useState(0);
 
   if (draft && draft.stepIndex !== prevStepIndex) {
     setPrevStepIndex(draft.stepIndex);
     setPickSlots([emptySlot(), emptySlot()]);
     setPickSearch("");
+    setViewStage(draft.stageIndex);
   }
 
   const playerById = useMemo(() => {
@@ -99,6 +105,7 @@ export function DraftModal({
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Both players are ready. Start the draft pick phase?
+            {stageCount > 1 && ` (${stageCount} stages)`}
           </p>
           <DialogFooter>
             <Button
@@ -121,8 +128,8 @@ export function DraftModal({
     );
   }
 
-  const step = getCurrentStep(draft);
-  const complete = isDraftComplete(draft);
+  const step = getCurrentStep(draft, stageCount);
+  const complete = isDraftComplete(draft, stageCount);
 
   const actorId = step.actor ? getActorPlayerId(draft, step.actor) : null;
   const actorPlayer = actorId ? playerById.get(actorId) ?? null : null;
@@ -136,7 +143,13 @@ export function DraftModal({
     playerById.get(draft.matchPlayerIds[1])!,
   ];
 
-  const stepDescription = getStepDescription(step.type, step.actor, actorPlayer, opponentPlayer);
+  const stepDescription = getStepDescription(
+    step.type,
+    step.actor,
+    actorPlayer,
+    opponentPlayer,
+    stageCount > 1 ? stageNames[draft.stageIndex] : undefined,
+  );
 
   function handleAction(newDraft: DraftState) {
     onSetDraft(newDraft);
@@ -149,12 +162,42 @@ export function DraftModal({
           <DialogTitle className="flex items-center gap-2">
             {match.label}
             <Badge variant="secondary">
-              Step {Math.min(draft.stepIndex + 1)}/{DRAFT_STEPS.length}
+              Step {Math.min(draft.stepIndex + 1)}/{getTotalSteps(stageCount)}
             </Badge>
+            {stageCount > 1 && (
+              <Badge variant="outline">
+              {stageNames[viewStage] ?? `Stage ${viewStage + 1}`}
+              </Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">{stepDescription}</p>
+
+        {stageCount > 1 && draft.stageIndex > 0 && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {Array.from({ length: draft.stageIndex + (complete ? 1 : 0) }, (_, i) => {
+              const isCurrent = i === draft.stageIndex;
+              const label = stageNames[i] ?? `Stage ${i + 1}`;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setViewStage(i)}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded-full border transition-colors",
+                    viewStage === i
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border hover:border-primary text-muted-foreground",
+                  )}
+                >
+                  {label}
+                  {!isCurrent && i < draft.stageIndex && " ✓"}
+                  {isCurrent && " ←"}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           {matchPlayers.map((p) => (
@@ -162,10 +205,12 @@ export function DraftModal({
               key={p.id}
               player={p}
               draft={draft}
+              viewStage={viewStage}
               rosterMap={rosterMap}
               costConfig={costConfig}
               isActorA={draft.playerAId === p.id}
               isActorTurn={actorId === p.id && !complete}
+              stageNames={stageNames}
             />
           ))}
         </div>
@@ -178,6 +223,7 @@ export function DraftModal({
               match={match}
               matchPlayers={matchPlayers}
               draft={draft}
+              stageCount={stageCount}
               rosterMap={rosterMap}
               costConfig={costConfig}
               onSubmitResult={onSubmitResult}
@@ -201,13 +247,17 @@ export function DraftModal({
             <CharBanUI
               opponentPlayer={opponentPlayer}
               draft={draft}
+              stageCount={stageCount}
               rosterMap={rosterMap}
-              onBan={(unitId) => handleAction(applyCharBan(draft, unitId))}
+              onBan={(unitId) =>
+                handleAction(applyCharBan(draft, unitId, stageCount))
+              }
             />
           ) : step.type === "pick" && actorPlayer ? (
             <PickUI
               actorPlayer={actorPlayer}
               draft={draft}
+              stageCount={stageCount}
               rosterMap={rosterMap}
               costConfig={costConfig}
               pickSlots={pickSlots}
@@ -215,7 +265,7 @@ export function DraftModal({
               pickSearch={pickSearch}
               setPickSearch={setPickSearch}
               onConfirm={() => {
-                handleAction(applyPick(draft, pickSlots));
+                handleAction(applyPick(draft, pickSlots, stageCount));
               }}
             />
           ) : null}
@@ -230,18 +280,20 @@ function getStepDescription(
   actor: string | null,
   actorPlayer: Player | null,
   opponentPlayer: Player | null,
+  stageName?: string,
 ): string {
   const actorName = actorPlayer?.name ?? "?";
   const oppName = opponentPlayer?.name ?? "?";
+  const stage = stageName ? ` [${stageName}]` : "";
   switch (type) {
     case "select-a":
       return "Select Player A (acts first in the draft)";
     case "global-ban":
       return `${actorName} — Global Ban: ban 1 registered limited 5★ char from ${oppName}`;
     case "char-ban":
-      return `${actorName} — Char Ban: ban 1 char from ${oppName}'s fieldable pool`;
+      return `${actorName} — Char Ban: ban 1 char from ${oppName}'s fieldable pool${stage}`;
     case "pick":
-      return `${actorName} — Pick 2 characters + equip weapons`;
+      return `${actorName} — Pick 2 characters + equip weapons${stage}`;
     default:
       return "";
   }
@@ -250,22 +302,46 @@ function getStepDescription(
 function PlayerPanel({
   player,
   draft,
+  viewStage,
   rosterMap,
   costConfig,
   isActorA,
   isActorTurn,
+  stageNames,
 }: {
   player: Player;
   draft: DraftState;
+  viewStage: number;
   rosterMap: Map<string, RosterUnit>;
   costConfig: Tournament["costConfig"];
   isActorA: boolean;
   isActorTurn: boolean;
+  stageNames: string[];
 }) {
-  const slots = draft.fielded[player.id] ?? [];
-  const cost = teamCost(slots, rosterMap, costConfig);
+  const stageCount = stageNames.length;
+  const isCurrent = viewStage === draft.stageIndex;
+
+  const stageSlots =
+    stageCount > 1
+      ? draft.fielded[player.id]?.slice(
+          viewStage * 4,
+          viewStage * 4 + 4,
+        ) ?? []
+      : draft.fielded[player.id] ?? [];
+  const allSlots = draft.fielded[player.id] ?? [];
+  const stageCost = teamCost(stageSlots, rosterMap, costConfig);
+
+  const charBans = isCurrent
+    ? draft.charBans[player.id] ?? []
+    : draft.stages[viewStage]?.charBans[player.id] ?? [];
   const globalBanned = draft.globalBans[player.id] ?? [];
-  const charBanned = draft.charBans[player.id] ?? [];
+
+  const prevStageSlots =
+    stageCount > 1
+      ? allSlots.filter(
+          (s) => !stageSlots.some((ss) => ss.charUnitId === s.charUnitId),
+        )
+      : [];
 
   return (
     <div
@@ -279,61 +355,105 @@ function PlayerPanel({
           {isActorA ? "A" : "B"} — {player.name}
           {isActorTurn && <Badge variant="default">Turn</Badge>}
         </span>
-        <Badge variant={cost > costConfig.maxCost ? "destructive" : "secondary"}>
-          {cost}/{costConfig.maxCost}
+        <Badge variant={stageCost > costConfig.maxCost ? "destructive" : "secondary"}>
+          {stageCost}/{costConfig.maxCost}
         </Badge>
       </div>
 
       <div className="space-y-1">
-        {slots.length === 0 ? (
+        {stageCount > 1 && (
+          <div className="flex items-center gap-1 mb-1">
+            <Badge variant="outline" className="text-[10px]">
+              {stageNames[draft.stageIndex] ?? `Stage ${draft.stageIndex + 1}`}
+            </Badge>
+          </div>
+        )}
+        {allSlots.length === 0 ? (
           <p className="text-xs text-muted-foreground">No characters picked yet.</p>
         ) : (
-          slots.map((slot, i) => {
-            const charUnit = slot.charUnitId
-              ? rosterMap.get(slot.charUnitId)
-              : null;
-            const weaponUnit = slot.weaponUnitId
-              ? rosterMap.get(slot.weaponUnitId)
-              : null;
-            const sc = slotCost(slot, rosterMap, costConfig);
-            return (
-              <div
-                key={i}
-                className="flex items-center gap-2 rounded-md bg-muted/50 p-1.5"
-              >
-                {charUnit ? (
-                  <>
-                    <UnitIcon unit={charUnit} size={28} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium truncate">
-                        {charUnit.name}
-                        {charUnit.banner === "limited" && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            C{slot.charCons}
-                          </span>
+          <>
+            {stageSlots.map((slot, i) => {
+              const charUnit = slot.charUnitId
+                ? rosterMap.get(slot.charUnitId)
+                : null;
+              const weaponUnit = slot.weaponUnitId
+                ? rosterMap.get(slot.weaponUnitId)
+                : null;
+              const sc = slotCost(slot, rosterMap, costConfig);
+              return (
+                <div
+                  key={`stage-${i}`}
+                  className="flex items-center gap-2 rounded-md bg-muted/50 p-1.5"
+                >
+                  {charUnit ? (
+                    <>
+                      <UnitIcon unit={charUnit} size={28} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">
+                          {charUnit.name}
+                          {charUnit.banner === "limited" && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              C{slot.charCons}
+                            </span>
+                          )}
+                        </div>
+                        {weaponUnit && (
+                          <div className="text-xs text-muted-foreground truncate">
+                            {weaponUnit.name} R{slot.refine}
+                          </div>
                         )}
                       </div>
-                      {weaponUnit && (
-                        <div className="text-xs text-muted-foreground truncate">
-                          {weaponUnit.name} R{slot.refine}
-                        </div>
+                      <Badge variant="outline" className="text-xs">
+                        {sc}
+                      </Badge>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Empty slot</span>
+                  )}
+                </div>
+              );
+            })}
+            {prevStageSlots.length > 0 && (
+              <>
+                <Separator className="my-1" />
+                {prevStageSlots.map((slot, i) => {
+                  const charUnit = slot.charUnitId
+                    ? rosterMap.get(slot.charUnitId)
+                    : null;
+                  const weaponUnit = slot.weaponUnitId
+                    ? rosterMap.get(slot.weaponUnitId)
+                    : null;
+                  return (
+                    <div
+                      key={`prev-${i}`}
+                      className="flex items-center gap-2 rounded-md bg-muted/30 p-1.5 opacity-50"
+                    >
+                      {charUnit ? (
+                        <>
+                          <UnitIcon unit={charUnit} size={24} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium truncate line-through">
+                              {charUnit.name}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">
+                            Used
+                          </Badge>
+                        </>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Empty</span>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {sc}
-                    </Badge>
-                  </>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Empty slot</span>
-                )}
-              </div>
-            );
-          })
+                  );
+                })}
+              </>
+            )}
+          </>
         )}
       </div>
 
-      {(globalBanned.length > 0 || charBanned.length > 0) && (
+      {(globalBanned.length > 0 || charBans.length > 0) && (
         <div className="space-y-1">
           {globalBanned.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
@@ -348,10 +468,10 @@ function PlayerPanel({
               })}
             </div>
           )}
-          {charBanned.length > 0 && (
+          {charBans.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs text-destructive">Char banned:</span>
-              {charBanned.map((id) => {
+              {charBans.map((id) => {
                 const u = rosterMap.get(id);
                 return u ? (
                   <span key={id} className="flex items-center gap-0.5 text-xs">
@@ -448,35 +568,20 @@ function CharBanUI({
   draft,
   rosterMap,
   onBan,
+  stageCount,
 }: {
   opponentPlayer: Player;
   draft: DraftState;
   rosterMap: Map<string, RosterUnit>;
   onBan: (unitId: string) => void;
+  stageCount: number;
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const [elementFilter, setElementFilter] = useState<string | null>(null);
+  const [filter, setFilter] = useState<PoolFilter>("registered");
 
-  const allPool = getBannableFieldablePool(opponentPlayer, draft, rosterMap);
-  const regPool = getRegisteredPool(opponentPlayer, draft, rosterMap).map(
-    (p) => p.unit,
-  );
-  const basePool = showAll ? allPool : regPool;
+  const allPool: PoolChar[] = getAllCharsPool(opponentPlayer, draft, rosterMap);
+  const regPool = getRegisteredPool(opponentPlayer, draft, rosterMap);
 
-  const elements = useMemo(() => {
-    const s = new Set<string>();
-    for (const u of basePool) if (u.element) s.add(u.element);
-    return [...s].sort();
-  }, [basePool]);
-
-  const elementLabel = (e: string) =>
-    ({ Ice: "Cryo", Fire: "Pyro", Water: "Hydro", Wind: "Anemo", Rock: "Geo", Grass: "Dendro", Electric: "Electro" })[e] ?? e;
-
-  const pool = elementFilter
-    ? basePool.filter((u) => u.element === elementFilter)
-    : basePool;
-
-  if (pool.length === 0) {
+  if (allPool.length === 0 && regPool.length === 0) {
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground text-center py-4">
@@ -491,66 +596,13 @@ function CharBanUI({
       <p className="text-sm font-medium">
         Ban a character from {opponentPlayer.name}&apos;s pool:
       </p>
-      <div className="flex flex-wrap items-center gap-1.5 mb-2">
-        <span className="text-xs text-muted-foreground shrink-0">Element:</span>
-        <button
-          onClick={() => setElementFilter(null)}
-          className={cn(
-            "text-xs px-2 py-0.5 rounded-full border transition-colors",
-            !elementFilter
-              ? "bg-primary text-primary-foreground border-primary"
-              : "border-border hover:border-primary",
-          )}
-        >
-          All
-        </button>
-        {elements.map((el) => (
-          <button
-            key={el}
-            onClick={() =>
-              setElementFilter(elementFilter === el ? null : el)
-            }
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              elementFilter === el
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border hover:border-primary",
-            )}
-          >
-            {elementLabel(el)}
-          </button>
-        ))}
-        <Separator orientation="vertical" className="h-4 mx-1" />
-        <button
-          onClick={() => setShowAll((s) => !s)}
-          className={cn(
-            "text-xs px-2 py-0.5 rounded-full border transition-colors",
-            showAll
-              ? "bg-primary text-primary-foreground border-primary"
-              : "border-border hover:border-primary",
-          )}
-        >
-          {showAll ? "All chars" : "Registered 5★"}
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {pool.map((unit) => (
-          <button
-            key={unit.id}
-            onClick={() => onBan(unit.id)}
-            className="flex items-center gap-1.5 rounded-lg border p-1 hover:border-destructive hover:bg-destructive/5 transition-colors"
-            title={unit.name}
-          >
-            <UnitIcon unit={unit} size={28} />
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-xs font-medium">{unit.name}</span>
-              <span className="text-[10px] text-muted-foreground">
-                {unit.rank}★ {unit.element ? elementLabel(unit.element) : ""}
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+      <CharacterPool
+        registeredPool={regPool}
+        allPool={allPool}
+        onSelect={(item) => onBan(item.unit.id)}
+        filter={filter}
+        onFilterChange={setFilter}
+      />
     </div>
   );
 }
@@ -558,6 +610,7 @@ function CharBanUI({
 function PickUI({
   actorPlayer,
   draft,
+  stageCount,
   rosterMap,
   costConfig,
   pickSlots,
@@ -568,6 +621,7 @@ function PickUI({
 }: {
   actorPlayer: Player;
   draft: DraftState;
+  stageCount: number;
   rosterMap: Map<string, RosterUnit>;
   costConfig: Tournament["costConfig"];
   pickSlots: FieldedSlot[];
@@ -576,49 +630,29 @@ function PickUI({
   setPickSearch: (s: string) => void;
   onConfirm: () => void;
 }) {
-  const step = getCurrentStep(draft);
-  const [elementFilter, setElementFilter] = useState<string | null>(null);
-  const [rankFilter, setRankFilter] = useState<number | null>(null);
+  const step = getCurrentStep(draft, stageCount);
+  const [filter, setFilter] = useState<PoolFilter>("registered");
 
   const curStepIdx = draft.stepIndex;
   const [prevStep, setPrevStep] = useState(curStepIdx);
-  const [showAll, setShowAll] = useState(false);
   if (curStepIdx !== prevStep) {
     setPrevStep(curStepIdx);
-    setElementFilter(null);
-    setRankFilter(null);
-    setShowAll(false);
+    setFilter("registered");
   }
 
-  const pool = useMemo(
-    () =>
-      showAll
-        ? getFieldablePool(actorPlayer, draft, rosterMap)
-        : getRegisteredPool(actorPlayer, draft, rosterMap),
-    [actorPlayer, draft, rosterMap, showAll],
+  const registeredPool = useMemo(
+    () => getRegisteredPool(actorPlayer, draft, rosterMap),
+    [actorPlayer, draft, rosterMap],
+  );
+  const allPool = useMemo(
+    () => getAllCharsPool(actorPlayer, draft, rosterMap),
+    [actorPlayer, draft, rosterMap],
   );
 
-  const elements = useMemo(() => {
-    const s = new Set<string>();
-    for (const p of pool) {
-      if (p.unit.element) s.add(p.unit.element);
-    }
-    return [...s].sort();
-  }, [pool]);
-
-  const elementLabel = (e: string) =>
-    ({ Ice: "Cryo", Fire: "Pyro", Water: "Hydro", Wind: "Anemo", Rock: "Geo", Grass: "Dendro", Electric: "Electro" })[e] ?? e;
-
-  const filteredPool = useMemo(() => {
-    let list = pool;
-    const q = pickSearch.toLowerCase().trim();
-    if (q) list = list.filter((p) => p.unit.name.toLowerCase().includes(q));
-    if (elementFilter) list = list.filter((p) => p.unit.element === elementFilter);
-    if (rankFilter) list = list.filter((p) => p.unit.rank === rankFilter);
-    return list;
-  }, [pool, pickSearch, elementFilter, rankFilter]);
-
-  const existingFielded = draft.fielded[actorPlayer.id] ?? [];
+  const existingFielded =
+    stageCount > 1
+      ? getStageFielded(draft, actorPlayer.id)
+      : draft.fielded[actorPlayer.id] ?? [];
   const projectedCost = teamCost(
     [...existingFielded, ...pickSlots],
     rosterMap,
@@ -749,111 +783,20 @@ function PickUI({
       <Separator />
 
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-muted-foreground shrink-0">Element:</span>
-          <button
-            onClick={() => setElementFilter(null)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              !elementFilter ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary",
-            )}
-          >
-            All
-          </button>
-          {elements.map((el) => (
-            <button
-              key={el}
-              onClick={() => setElementFilter(elementFilter === el ? null : el)}
-              className={cn(
-                "text-xs px-2 py-0.5 rounded-full border transition-colors",
-                elementFilter === el ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary",
-              )}
-            >
-              {elementLabel(el)}
-            </button>
-          ))}
-          <Separator orientation="vertical" className="h-4 mx-1" />
-          <span className="text-xs text-muted-foreground shrink-0">Rarity:</span>
-          <button
-            onClick={() => setRankFilter(null)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              !rankFilter ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary",
-            )}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setRankFilter(rankFilter === 5 ? null : 5)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              rankFilter === 5 ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary",
-            )}
-          >
-            5★
-          </button>
-          <button
-            onClick={() => setRankFilter(rankFilter === 4 ? null : 4)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              rankFilter === 4 ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary",
-            )}
-          >
-            4★
-          </button>
-          <Separator orientation="vertical" className="h-4 mx-1" />
-          <button
-            onClick={() => setShowAll((s) => !s)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              showAll
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border hover:border-primary",
-            )}
-          >
-            {showAll ? "All chars" : "Registered 5★"}
-          </button>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Search characters..."
-            value={pickSearch}
-            onChange={(e) => setPickSearch(e.target.value)}
-            className="pl-9 h-8 text-sm"
-          />
-        </div>
-        <ScrollArea className="h-40">
-          <div className="flex flex-wrap gap-1.5 pr-2">
-            {filteredPool.map(({ unit, cons }) => {
-              const isPicked = pickedIds.has(unit.id);
-              return (
-                <button
-                  key={unit.id}
-                  onClick={() => !isPicked && selectChar(unit, cons)}
-                  disabled={isPicked || filledSlots >= step.count}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg border p-1 transition-colors",
-                    isPicked
-                      ? "opacity-30 cursor-not-allowed"
-                      : filledSlots >= step.count
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:border-primary hover:bg-muted/50",
-                  )}
-                >
-                  <UnitIcon unit={unit} size={28} />
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="text-xs font-medium">{unit.name}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {unit.rank}★ {unit.element ? elementLabel(unit.element) : ""}
-                      {unit.banner === "limited" && ` C${cons}`}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
+        <CharacterPool
+          registeredPool={registeredPool}
+          allPool={allPool}
+          onSelect={({ unit, cons }) => selectChar(unit, cons)}
+          disabledIds={
+            filledSlots >= step.count
+              ? new Set(allPool.map((p) => p.unit.id))
+              : pickedIds
+          }
+          filter={filter}
+          onFilterChange={setFilter}
+          search={pickSearch}
+          onSearchChange={setPickSearch}
+        />
       </div>
 
       <Button
@@ -873,6 +816,7 @@ function WinnerSelection({
   match,
   matchPlayers,
   draft,
+  stageCount,
   rosterMap,
   costConfig,
   onSubmitResult,
@@ -881,6 +825,7 @@ function WinnerSelection({
   match: Match;
   matchPlayers: [Player, Player];
   draft: DraftState;
+  stageCount: number;
   rosterMap: Map<string, RosterUnit>;
   costConfig: Tournament["costConfig"];
   onSubmitResult: (winnerId: string) => void;
@@ -902,8 +847,11 @@ function WinnerSelection({
       </p>
       <div className="grid grid-cols-2 gap-4">
         {matchPlayers.map((p) => {
-          const slots = draft.fielded[p.id] ?? [];
-          const cost = teamCost(slots, rosterMap, costConfig);
+          const stageSlots =
+            stageCount > 1
+              ? getStageFielded(draft, p.id)
+              : draft.fielded[p.id] ?? [];
+          const cost = teamCost(stageSlots, rosterMap, costConfig);
           return (
             <Button
               key={p.id}
@@ -919,6 +867,11 @@ function WinnerSelection({
               <span className="font-bold text-lg">{p.name}</span>
               <span className="text-xs text-muted-foreground">
                 Cost: {cost}/{costConfig.maxCost}
+                {stageCount > 1 && (
+                  <span className="block">
+                    (last stage)
+                  </span>
+                )}
               </span>
             </Button>
           );

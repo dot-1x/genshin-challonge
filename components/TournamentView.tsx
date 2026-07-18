@@ -10,6 +10,16 @@ import { DraftModal } from "@/components/DraftModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
+import type { BracketType, TournamentType } from "@/lib/types";
+
+function formatLabel(f: BracketType): string {
+  return f === "double" ? "Double Elim" : "Single Elim";
+}
+
+function typeLabel(t: TournamentType): string {
+  if (t === "spiral") return "Spiral Abyss";
+  return "Stygian";
+}
 
 export function TournamentView({ id }: { id: string }) {
   const {
@@ -77,9 +87,10 @@ export function TournamentView({ id }: { id: string }) {
               <h1 className="text-lg font-bold truncate">{tournament.name}</h1>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge variant="secondary">
-                  {tournament.format === "single"
-                    ? "Single Elim"
-                    : "Double Elim"}
+                  {formatLabel(tournament.format)}
+                </Badge>
+                <Badge variant="secondary">
+                  {typeLabel(tournament.type)}
                 </Badge>
                 <Badge variant="secondary">
                   {tournament.playerCount} players

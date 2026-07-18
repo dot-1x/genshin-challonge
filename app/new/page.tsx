@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTournament } from "@/lib/store";
-import type { CostConfig, CostRule } from "@/lib/types";
+import type { CostConfig, CostRule, TournamentType, BracketType } from "@/lib/types";
 import { uid } from "@/lib/random";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,8 @@ const PLAYER_COUNTS = [2, 4, 8, 16, 32];
 export default function NewTournamentPage() {
   const router = useRouter();
   const [name, setName] = useState("Genshin Challonge");
-  const [format, setFormat] = useState<"single" | "double">("single");
+  const [format, setFormat] = useState<BracketType>("single");
+  const [tournamentType, setTournamentType] = useState<TournamentType>("spiral");
   const [playerCount, setPlayerCount] = useState(8);
   const [maxCost, setMaxCost] = useState(7);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -99,6 +100,7 @@ export default function NewTournamentPage() {
     const id = createTournament({
       name: name.trim() || "Untitled Tournament",
       format,
+      type: tournamentType,
       playerCount,
       costConfig,
       playerNames,
@@ -138,7 +140,7 @@ export default function NewTournamentPage() {
                 <Label>Format</Label>
                 <Select
                   value={format}
-                  onValueChange={(v) => { if (v) setFormat(v as "single" | "double"); }}
+                  onValueChange={(v) => { if (v) setFormat(v as BracketType); }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -146,6 +148,22 @@ export default function NewTournamentPage() {
                   <SelectContent>
                     <SelectItem value="single">Single Elimination</SelectItem>
                     <SelectItem value="double">Double Elimination</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tournament Type</Label>
+                <Select
+                  value={tournamentType}
+                  onValueChange={(v) => { if (v) setTournamentType(v as TournamentType); }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="spiral">Spiral Abyss (2 Halves)</SelectItem>
+                    <SelectItem value="stygian">Stygian (3 Stages)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

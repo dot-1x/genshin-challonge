@@ -7,6 +7,8 @@ import type {
   Player,
   RegisteredChar,
   Tournament,
+  TournamentType,
+  BracketType,
 } from "./types";
 import { DEFAULT_COST_CONFIG } from "./types";
 import { uid } from "./random";
@@ -44,7 +46,8 @@ function updateTournament(id: string, fn: (t: Tournament) => Tournament) {
 
 export type CreateTournamentData = {
   name: string;
-  format: "single" | "double";
+  format: BracketType;
+  type: TournamentType;
   playerCount: number;
   costConfig: CostConfig;
   playerNames: string[];
@@ -65,6 +68,7 @@ export function createTournament(data: CreateTournamentData): string {
     id,
     name: data.name,
     format: data.format,
+    type: data.type,
     playerCount: data.playerCount,
     costConfig: data.costConfig,
     players,

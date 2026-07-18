@@ -12,6 +12,16 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Plus, Trash2, Swords } from "lucide-react";
+import type { BracketType, TournamentType } from "@/lib/types";
+
+function formatLabel(f: BracketType): string {
+  return f === "double" ? "Double Elim" : "Single Elim";
+}
+
+function typeLabel(t: TournamentType): string {
+  if (t === "spiral") return "Spiral Abyss";
+  return "Stygian";
+}
 
 export default function Home() {
   const { list, loaded, remove } = useTournaments();
@@ -87,7 +97,10 @@ export default function Home() {
                 <CardContent>
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Badge variant="secondary">
-                      {t.format === "single" ? "Single Elim" : "Double Elim"}
+                      {formatLabel(t.format)}
+                    </Badge>
+                    <Badge variant="secondary">
+                      {typeLabel(t.type)}
                     </Badge>
                     <Badge variant="secondary">{t.playerCount} players</Badge>
                     <Badge variant="secondary">

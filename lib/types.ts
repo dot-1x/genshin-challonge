@@ -53,6 +53,11 @@ export type FieldedSlot = {
 
 export type DraftStepType = "select-a" | "global-ban" | "char-ban" | "pick";
 
+export type StageData = {
+  charBans: Record<string, string[]>;
+  fielded: Record<string, FieldedSlot[]>;
+};
+
 export type DraftState = {
   matchPlayerIds: [string, string];
   playerAId: string | null;
@@ -61,10 +66,13 @@ export type DraftState = {
   globalBans: Record<string, string[]>;
   charBans: Record<string, string[]>;
   fielded: Record<string, FieldedSlot[]>;
+  stageIndex: number;
+  stages: StageData[];
   winnerId: string | null;
 };
 
 export type BracketType = "single" | "double";
+export type TournamentType = "spiral" | "stygian";
 export type MatchSide = "left" | "right" | "final";
 
 export type Match = {
@@ -87,6 +95,7 @@ export type Tournament = {
   id: string;
   name: string;
   format: BracketType;
+  type: TournamentType;
   playerCount: number;
   costConfig: CostConfig;
   players: Player[];
