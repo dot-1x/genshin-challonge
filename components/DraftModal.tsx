@@ -328,20 +328,12 @@ function PlayerPanel({
           viewStage * 4 + 4,
         ) ?? []
       : draft.fielded[player.id] ?? [];
-  const allSlots = draft.fielded[player.id] ?? [];
   const stageCost = teamCost(stageSlots, rosterMap, costConfig);
 
   const charBans = isCurrent
     ? draft.charBans[player.id] ?? []
     : draft.stages[viewStage]?.charBans[player.id] ?? [];
   const globalBanned = draft.globalBans[player.id] ?? [];
-
-  const prevStageSlots =
-    stageCount > 1
-      ? allSlots.filter(
-          (s) => !stageSlots.some((ss) => ss.charUnitId === s.charUnitId),
-        )
-      : [];
 
   return (
     <div
@@ -364,92 +356,55 @@ function PlayerPanel({
         {stageCount > 1 && (
           <div className="flex items-center gap-1 mb-1">
             <Badge variant="outline" className="text-[10px]">
-              {stageNames[draft.stageIndex] ?? `Stage ${draft.stageIndex + 1}`}
+              {stageNames[viewStage] ?? `Stage ${viewStage + 1}`}
             </Badge>
           </div>
         )}
-        {allSlots.length === 0 ? (
+        {stageSlots.length === 0 ? (
           <p className="text-xs text-muted-foreground">No characters picked yet.</p>
         ) : (
-          <>
-            {stageSlots.map((slot, i) => {
-              const charUnit = slot.charUnitId
-                ? rosterMap.get(slot.charUnitId)
-                : null;
-              const weaponUnit = slot.weaponUnitId
-                ? rosterMap.get(slot.weaponUnitId)
-                : null;
-              const sc = slotCost(slot, rosterMap, costConfig);
-              return (
-                <div
-                  key={`stage-${i}`}
-                  className="flex items-center gap-2 rounded-md bg-muted/50 p-1.5"
-                >
-                  {charUnit ? (
-                    <>
-                      <UnitIcon unit={charUnit} size={28} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">
-                          {charUnit.name}
-                          {charUnit.banner === "limited" && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              C{slot.charCons}
-                            </span>
-                          )}
-                        </div>
-                        {weaponUnit && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {weaponUnit.name} R{slot.refine}
-                          </div>
+          stageSlots.map((slot, i) => {
+            const charUnit = slot.charUnitId
+              ? rosterMap.get(slot.charUnitId)
+              : null;
+            const weaponUnit = slot.weaponUnitId
+              ? rosterMap.get(slot.weaponUnitId)
+              : null;
+            const sc = slotCost(slot, rosterMap, costConfig);
+            return (
+              <div
+                key={`stage-${i}`}
+                className="flex items-center gap-2 rounded-md bg-muted/50 p-1.5"
+              >
+                {charUnit ? (
+                  <>
+                    <UnitIcon unit={charUnit} size={28} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium truncate">
+                        {charUnit.name}
+                        {charUnit.banner === "limited" && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            C{slot.charCons}
+                          </span>
                         )}
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {sc}
-                      </Badge>
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Empty slot</span>
-                  )}
-                </div>
-              );
-            })}
-            {prevStageSlots.length > 0 && (
-              <>
-                <Separator className="my-1" />
-                {prevStageSlots.map((slot, i) => {
-                  const charUnit = slot.charUnitId
-                    ? rosterMap.get(slot.charUnitId)
-                    : null;
-                  const weaponUnit = slot.weaponUnitId
-                    ? rosterMap.get(slot.weaponUnitId)
-                    : null;
-                  return (
-                    <div
-                      key={`prev-${i}`}
-                      className="flex items-center gap-2 rounded-md bg-muted/30 p-1.5 opacity-50"
-                    >
-                      {charUnit ? (
-                        <>
-                          <UnitIcon unit={charUnit} size={24} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium truncate line-through">
-                              {charUnit.name}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-[10px]">
-                            Used
-                          </Badge>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Empty</span>
+                      {weaponUnit && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {weaponUnit.name} R{slot.refine}
+                        </div>
                       )}
                     </div>
-                  );
-                })}
-              </>
-            )}
-          </>
+                    <Badge variant="outline" className="text-xs">
+                      {sc}
+                    </Badge>
+                  </>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Empty slot</span>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

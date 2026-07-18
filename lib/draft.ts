@@ -345,6 +345,7 @@ export function getAllCharsPool(
   const pool: { unit: RosterUnit; cons: number }[] = [];
   for (const unit of roster.values()) {
     if (unit.kind !== "character") continue;
+    if (unit.banner === "limited" && !registeredCons.has(unit.id)) continue;
     if (globallyBanned.has(unit.id)) continue;
     if (charBanned.has(unit.id)) continue;
     if (fielded.has(unit.id)) continue;
