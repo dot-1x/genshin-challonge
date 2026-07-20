@@ -51,6 +51,7 @@ export type CreateTournamentData = {
   playerCount: number;
   costConfig: CostConfig;
   playerNames: string[];
+  shufflePlayers: boolean;
 };
 
 export function createTournament(data: CreateTournamentData): string {
@@ -63,7 +64,7 @@ export function createTournament(data: CreateTournamentData): string {
     registration: [],
     locked: false,
   }));
-  const matches = generateBracket(data.format, players);
+  const matches = generateBracket(data.format, players, data.shufflePlayers);
   const tournament: Tournament = {
     id,
     name: data.name,

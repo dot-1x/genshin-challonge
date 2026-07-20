@@ -8,8 +8,8 @@ function singleLabel(round: number, totalRounds: number): string {
   return `Round ${round}`;
 }
 
-export function generateSingleElim(players: Player[]): Match[] {
-  const shuffled = shuffle(players);
+export function generateSingleElim(players: Player[], shufflePlayers = true): Match[] {
+  const shuffled = shufflePlayers ? shuffle(players) : [...players];
   const n = shuffled.length;
   const totalRounds = Math.log2(n);
   const matches: Match[] = [];
@@ -111,8 +111,8 @@ function lbLabel(round: number, totalLbRounds: number): string {
   return `Losers R${round}`;
 }
 
-export function generateDoubleElim(players: Player[]): Match[] {
-  const shuffled = shuffle(players);
+export function generateDoubleElim(players: Player[], shufflePlayers = true): Match[] {
+  const shuffled = shufflePlayers ? shuffle(players) : [...players];
   const n = shuffled.length;
   const totalRounds = Math.log2(n);
   const totalLbRounds = 2 * (totalRounds - 1);
@@ -294,8 +294,9 @@ export function generateDoubleElim(players: Player[]): Match[] {
 export function generateBracket(
   format: BracketType,
   players: Player[],
+  shufflePlayers = true,
 ): Match[] {
   return format === "double"
-    ? generateDoubleElim(players)
-    : generateSingleElim(players);
+    ? generateDoubleElim(players, shufflePlayers)
+    : generateSingleElim(players, shufflePlayers);
 }

@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -48,6 +48,7 @@ export default function NewTournamentPage() {
   const [weaponRefineCosts, setWeaponRefineCosts] = useState<{ [refine: number]: number } | undefined>(undefined);
   const [selectedPreset, setSelectedPreset] = useState("default");
   const [customRules, setCustomRules] = useState<CostRule[]>([]);
+  const [randomize, setRandomize] = useState(true);
   const [playerText, setPlayerText] = useState("");
 
   const playerNames = playerText
@@ -125,6 +126,7 @@ export default function NewTournamentPage() {
       playerCount,
       costConfig,
       playerNames,
+      shufflePlayers: randomize,
     });
     toast.success("Tournament created!");
     router.push(`/t/${id}`);
@@ -210,7 +212,33 @@ export default function NewTournamentPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="maxCost">Maximum Cost</Label>
+            <Label>Randomize Order</Label>
+            <button
+              type="button"
+              onClick={() => setRandomize((r) => !r)}
+              className={`flex items-center gap-2 w-full px-3 py-2 text-sm border rounded-none transition-colors ${
+                randomize
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-background text-muted-foreground"
+              }`}
+            >
+              <Shuffle className="size-4" />
+              <span className="flex-1 text-left">
+                {randomize ? "Randomize opponent order" : "Use input order"}
+              </span>
+              <span className="text-xs font-mono uppercase">
+                {randomize ? "ON" : "OFF"}
+              </span>
+            </button>
+            <p className="text-xs text-muted-foreground">
+              {randomize
+                ? "Players will be randomly shuffled into the bracket."
+                : "Bracket follows the order players are entered above."}
+            </p>
+            </div>
+
+            <div className="space-y-2">
+            <Label htmlFor="maxCost">Maximum Cost</Label>
               <Input
                 id="maxCost"
                 type="number"
