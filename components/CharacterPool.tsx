@@ -1,12 +1,36 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { RosterUnit } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { UnitIcon } from "@/components/UnitIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "text-xs px-2 py-0.5 rounded-full border transition-colors",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "border-border hover:border-primary",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function elementLabel(e: string): string {
   return (
@@ -78,41 +102,26 @@ export function CharacterPool({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-1.5">
-        <button
+        <FilterButton
+          active={filter === "registered"}
           onClick={() => onFilterChange("registered")}
-          className={cn(
-            "text-xs px-2 py-0.5 rounded-full border transition-colors",
-            filter === "registered"
-              ? "bg-primary text-primary-foreground border-primary"
-              : "border-border hover:border-primary",
-          )}
         >
           Registered
-        </button>
-        <button
+        </FilterButton>
+        <FilterButton
+          active={filter === "all"}
           onClick={() => onFilterChange("all")}
-          className={cn(
-            "text-xs px-2 py-0.5 rounded-full border transition-colors",
-            filter === "all"
-              ? "bg-primary text-primary-foreground border-primary"
-              : "border-border hover:border-primary",
-          )}
         >
           All
-        </button>
+        </FilterButton>
         {elements.map((el) => (
-          <button
+          <FilterButton
             key={el}
+            active={filter === el}
             onClick={() => onFilterChange(el)}
-            className={cn(
-              "text-xs px-2 py-0.5 rounded-full border transition-colors",
-              filter === el
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border hover:border-primary",
-            )}
           >
             {elementLabel(el)}
-          </button>
+          </FilterButton>
         ))}
       </div>
 

@@ -6,7 +6,7 @@ import { useTournament } from "@/lib/store";
 import { useRoster } from "@/lib/roster";
 import { BracketView } from "@/components/BracketView";
 import { RegistrationModal } from "@/components/RegistrationModal";
-import { DraftModal } from "@/components/DraftModal";
+import { DraftModal } from "@/components/draft";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
