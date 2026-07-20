@@ -53,7 +53,7 @@ export function RegistrationModal({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return limitedChars;
+    if (!q) return [];
     return limitedChars.filter((u) => u.name.toLowerCase().includes(q));
   }, [limitedChars, search]);
 
@@ -211,6 +211,13 @@ export function RegistrationModal({
                         </button>
                       );
                     })}
+                    {filtered.length === 0 && (
+                      <p className="col-span-2 text-sm text-muted-foreground text-center py-6">
+                        {search.trim()
+                          ? "No matching characters."
+                          : "Type to search for characters to add."}
+                      </p>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
