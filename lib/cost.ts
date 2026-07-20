@@ -9,6 +9,25 @@ function ruleModifier(
     .reduce((sum, r) => sum + (r.op === "add" ? r.value : -r.value), 0);
 }
 
+function tieredCost(
+  level: number,
+  tiers: { [key: number]: number } | undefined,
+  perLevel: number = 1,
+): number | undefined {
+  if (!tiers) return undefined;
+  const keys = Object.keys(tiers).map(Number).sort((a, b) => a - b);
+  if (keys.length === 0) return undefined;
+  if (level in tiers) return tiers[level];
+  const maxKey = keys[keys.length - 1];
+  if (level > maxKey) return tiers[maxKey] + perLevel * (level - maxKey);
+  const minKey = keys[0];
+  if (level < minKey) return tiers[minKey] - perLevel * (minKey - level);
+  for (let i = keys.length - 1; i >= 0; i--) {
+    if (keys[i] < level) return tiers[keys[i]] + perLevel * (level - keys[i]);
+  }
+  return undefined;
+}
+
 export function charCost(
   unit: RosterUnit | undefined,
   cons: number,
@@ -17,7 +36,8 @@ export function charCost(
   if (!unit || unit.kind !== "character") return 0;
   let cost = 0;
   if (unit.banner === "limited") {
-    cost = config.limitedCharBase + config.perCons * cons;
+    cost = tieredCost(cons, config.charConsCosts, config.perCons)
+      ?? config.limitedCharBase + config.perCons * cons;
   }
   cost += ruleModifier(config.customRules, "character");
   return Math.max(0, cost);
@@ -31,7 +51,8 @@ export function weaponCost(
   if (!unit || unit.kind !== "weapon") return 0;
   let cost = 0;
   if (unit.banner === "limited") {
-    cost = config.limitedWeaponBase + config.perRefine * (refine - 1);
+    cost = tieredCost(refine, config.weaponRefineCosts, config.perRefine)
+      ?? config.limitedWeaponBase + config.perRefine * (refine - 1);
   }
   cost += ruleModifier(config.customRules, "weapon");
   return Math.max(0, cost);

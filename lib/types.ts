@@ -42,6 +42,8 @@ export type CostConfig = {
   limitedWeaponBase: number;
   perRefine: number;
   customRules: CostRule[];
+  charConsCosts?: { [cons: number]: number };
+  weaponRefineCosts?: { [refine: number]: number };
 };
 
 export type FieldedSlot = {
@@ -132,3 +134,31 @@ export const DEFAULT_COST_CONFIG: CostConfig = {
   perRefine: 1,
   customRules: [],
 };
+
+export type CostPreset = {
+  id: string;
+  name: string;
+  config: CostConfig;
+};
+
+export const COST_PRESETS: CostPreset[] = [
+  {
+    id: "default",
+    name: "Default (7 cost)",
+    config: DEFAULT_COST_CONFIG,
+  },
+  {
+    id: "lgba",
+    name: "LGBA",
+    config: {
+      maxCost: 7,
+      limitedCharBase: 1,
+      perCons: 1,
+      limitedWeaponBase: 2,
+      perRefine: 1,
+      customRules: [],
+      charConsCosts: { 0: 1, 1: 3 },
+      weaponRefineCosts: { 1: 2, 2: 3 },
+    },
+  },
+];

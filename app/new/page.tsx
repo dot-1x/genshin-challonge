@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTournament } from "@/lib/store";
 import type { CostConfig, CostRule, TournamentType, BracketType } from "@/lib/types";
+import { COST_PRESETS } from "@/lib/types";
 import { uid } from "@/lib/random";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,9 @@ export default function NewTournamentPage() {
   const [perCons, setPerCons] = useState(1);
   const [limitedWeaponBase, setLimitedWeaponBase] = useState(1);
   const [perRefine, setPerRefine] = useState(1);
+  const [charConsCosts, setCharConsCosts] = useState<{ [cons: number]: number } | undefined>(undefined);
+  const [weaponRefineCosts, setWeaponRefineCosts] = useState<{ [refine: number]: number } | undefined>(undefined);
+  const [selectedPreset, setSelectedPreset] = useState("default");
   const [customRules, setCustomRules] = useState<CostRule[]>([]);
   const [playerText, setPlayerText] = useState("");
 
@@ -64,6 +68,21 @@ export default function NewTournamentPage() {
         value: 1,
       },
     ]);
+  }
+
+  function applyPreset(presetId: string) {
+    const preset = COST_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setSelectedPreset(presetId);
+    const c = preset.config;
+    setMaxCost(c.maxCost);
+    setLimitedCharBase(c.limitedCharBase);
+    setPerCons(c.perCons);
+    setLimitedWeaponBase(c.limitedWeaponBase);
+    setPerRefine(c.perRefine);
+    setCustomRules(c.customRules);
+    setCharConsCosts(c.charConsCosts);
+    setWeaponRefineCosts(c.weaponRefineCosts);
   }
 
   function updateRule(id: string, patch: Partial<CostRule>) {
@@ -95,6 +114,8 @@ export default function NewTournamentPage() {
       limitedWeaponBase,
       perRefine,
       customRules,
+      charConsCosts,
+      weaponRefineCosts,
     };
 
     const id = createTournament({
@@ -201,6 +222,25 @@ export default function NewTournamentPage() {
                 Limited 5★ char: base + per cons. Limited 5★ weapon: base + per
                 refine. Standard: 0 cost.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cost Preset</Label>
+              <Select
+                value={selectedPreset}
+                onValueChange={(v) => { if (v) applyPreset(v); }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COST_PRESETS.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
