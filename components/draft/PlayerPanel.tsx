@@ -1,8 +1,8 @@
-import type { DraftState, Player, RosterUnit, Tournament } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { UnitIcon } from "@/components/UnitIcon";
-import { cn } from "@/lib/utils";
-import { teamCost, slotCost } from "@/lib/cost";
+import type { DraftState, Player, RosterUnit, Tournament } from "@/lib/types"
+import { Badge } from "@/components/ui/badge"
+import { UnitIcon } from "@/components/UnitIcon"
+import { cn } from "@/lib/utils"
+import { teamCost, slotCost } from "@/lib/cost"
 
 export function PlayerPanel({
   player,
@@ -14,31 +14,29 @@ export function PlayerPanel({
   isActorTurn,
   stageNames,
 }: {
-  player: Player;
-  draft: DraftState;
-  viewStage: number;
-  rosterMap: Map<string, RosterUnit>;
-  costConfig: Tournament["costConfig"];
-  isActorA: boolean;
-  isActorTurn: boolean;
-  stageNames: string[];
+  player: Player
+  draft: DraftState
+  viewStage: number
+  rosterMap: Map<string, RosterUnit>
+  costConfig: Tournament["costConfig"]
+  isActorA: boolean
+  isActorTurn: boolean
+  stageNames: string[]
 }) {
-  const stageCount = stageNames.length;
-  const isCurrent = viewStage === draft.stageIndex;
+  const stageCount = stageNames.length
+  const isCurrent = viewStage === draft.stageIndex
 
   const stageSlots =
     stageCount > 1
-      ? draft.fielded[player.id]?.slice(
-          viewStage * 4,
-          viewStage * 4 + 4,
-        ) ?? []
-      : draft.fielded[player.id] ?? [];
-  const stageCost = teamCost(stageSlots, rosterMap, costConfig);
+      ? (draft.fielded[player.id]?.slice(viewStage * 4, viewStage * 4 + 4) ??
+        [])
+      : (draft.fielded[player.id] ?? [])
+  const stageCost = teamCost(stageSlots, rosterMap, costConfig)
 
   const charBans = isCurrent
-    ? draft.charBans[player.id] ?? []
-    : draft.stages[viewStage]?.charBans[player.id] ?? [];
-  const globalBanned = draft.globalBans[player.id] ?? [];
+    ? (draft.charBans[player.id] ?? [])
+    : (draft.stages[viewStage]?.charBans[player.id] ?? [])
+  const globalBanned = draft.globalBans[player.id] ?? []
 
   return (
     <div
@@ -52,7 +50,9 @@ export function PlayerPanel({
           {isActorA ? "A" : "B"} — {player.name}
           {isActorTurn && <Badge variant="default">Turn</Badge>}
         </span>
-        <Badge variant={stageCost > costConfig.maxCost ? "destructive" : "secondary"}>
+        <Badge
+          variant={stageCost > costConfig.maxCost ? "destructive" : "secondary"}
+        >
           {stageCost}/{costConfig.maxCost}
         </Badge>
       </div>
@@ -66,16 +66,18 @@ export function PlayerPanel({
           </div>
         )}
         {stageSlots.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No characters picked yet.</p>
+          <p className="text-xs text-muted-foreground">
+            No characters picked yet.
+          </p>
         ) : (
           stageSlots.map((slot, i) => {
             const charUnit = slot.charUnitId
               ? rosterMap.get(slot.charUnitId)
-              : null;
+              : null
             const weaponUnit = slot.weaponUnitId
               ? rosterMap.get(slot.weaponUnitId)
-              : null;
-            const sc = slotCost(slot, rosterMap, costConfig);
+              : null
+            const sc = slotCost(slot, rosterMap, costConfig)
             return (
               <div
                 key={`stage-${i}`}
@@ -105,10 +107,12 @@ export function PlayerPanel({
                     </Badge>
                   </>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Empty slot</span>
+                  <span className="text-xs text-muted-foreground">
+                    Empty slot
+                  </span>
                 )}
               </div>
-            );
+            )
           })
         )}
       </div>
@@ -119,12 +123,16 @@ export function PlayerPanel({
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs text-destructive">Global banned:</span>
               {globalBanned.map((id) => {
-                const u = rosterMap.get(id);
+                const u = rosterMap.get(id)
                 return u ? (
                   <span key={id} className="flex items-center gap-0.5 text-xs">
-                    <UnitIcon unit={u} size={16} className="opacity-40 grayscale" />
+                    <UnitIcon
+                      unit={u}
+                      size={32}
+                      className="opacity-40 grayscale"
+                    />
                   </span>
-                ) : null;
+                ) : null
               })}
             </div>
           )}
@@ -132,17 +140,21 @@ export function PlayerPanel({
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-xs text-destructive">Char banned:</span>
               {charBans.map((id) => {
-                const u = rosterMap.get(id);
+                const u = rosterMap.get(id)
                 return u ? (
                   <span key={id} className="flex items-center gap-0.5 text-xs">
-                    <UnitIcon unit={u} size={16} className="opacity-40 grayscale" />
+                    <UnitIcon
+                      unit={u}
+                      size={32}
+                      className="opacity-40 grayscale"
+                    />
                   </span>
-                ) : null;
+                ) : null
               })}
             </div>
           )}
         </div>
       )}
     </div>
-  );
+  )
 }

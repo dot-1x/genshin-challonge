@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   DraftSimulation,
-  DraftState,
   RegisteredChar,
 } from "@/lib/types";
 import { DEFAULT_COST_CONFIG } from "@/lib/types";
 import { useSimulations } from "@/lib/simulator";
 import { usePresets } from "@/lib/presets";
 import { useRoster } from "@/lib/roster";
-import { DraftModal } from "@/components/draft";
 import { RegistrationModal } from "@/components/RegistrationModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Shield, Library } from "lucide-react";
 import {
-  makeMatch,
   makePlayer,
-  makeTournament,
   playerReg,
   playerName,
   PLAYER_A_ID,
@@ -45,7 +42,6 @@ type Mode =
   | "names"
   | "preset"
   | "register"
-  | "draft"
   | "save-preset";
 
 export function SimulatorView() {
@@ -62,6 +58,7 @@ export function SimulatorView() {
     error: rosterError,
     refresh,
   } = useRoster();
+  const router = useRouter();
 
   const [mode, setMode] = useState<Mode>("list");
   const [simId, setSimId] = useState<string | null>(null);
@@ -69,6 +66,10 @@ export function SimulatorView() {
   const [newNameA, setNewNameA] = useState("");
   const [newNameB, setNewNameB] = useState("");
   const [presetName, setPresetName] = useState("");
+
+  function openDraft(id: string) {
+    router.push(`/simulator/${id}`);
+  }
 
   const sim = simId ? list.find((s) => s.id === simId) ?? null : null;
 
@@ -95,7 +96,8 @@ export function SimulatorView() {
       setMode("preset");
     } else {
       setActivePlayer(null);
-      setMode("draft");
+      const currentSim = simId;
+      if (currentSim) openDraft(currentSim);
     }
   }
 
@@ -118,23 +120,24 @@ export function SimulatorView() {
   function handleOpenSim(id: string) {
     const s = list.find((x) => x.id === id);
     if (!s) return;
-    setSimId(id);
     setPresetName("");
     if (s.draft) {
       setActivePlayer(null);
-      setMode("draft");
+      openDraft(id);
     } else if (
       s.playerARegistration.length + s.playerBRegistration.length ===
       0
     ) {
+      setSimId(id);
       setActivePlayer("A");
       setMode("preset");
     } else if (s.playerBRegistration.length === 0) {
+      setSimId(id);
       setActivePlayer("B");
       setMode("preset");
     } else {
       setActivePlayer(null);
-      setMode("draft");
+      openDraft(id);
     }
   }
 
@@ -154,15 +157,6 @@ export function SimulatorView() {
     if (!next) return;
     update(sim.id, next);
     advanceAfterReg(activePlayer);
-  }
-
-  function handleSetDraft(draft: DraftState) {
-    if (!sim) return;
-    update(sim.id, { ...sim, draft });
-  }
-
-  function handleSubmitResult(_winnerId: string) {
-    closeSim();
   }
 
   function handleDelete(id: string) {
@@ -202,9 +196,6 @@ export function SimulatorView() {
         activePlayer === "A" ? 0 : 1,
       )
     : null;
-
-  const syntheticTournament = sim ? makeTournament(sim) : null;
-  const syntheticMatch = sim ? makeMatch(sim.draft) : null;
 
   return (
     <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8">
@@ -425,19 +416,6 @@ export function SimulatorView() {
           player={syntheticPlayer}
           roster={roster}
           onSave={handleSaveRegistration}
-          onOpenChange={(open) => {
-            if (!open) closeSim();
-          }}
-        />
-      )}
-
-      {mode === "draft" && sim && syntheticMatch && syntheticTournament && (
-        <DraftModal
-          match={syntheticMatch}
-          tournament={syntheticTournament}
-          rosterMap={rosterMap}
-          onSetDraft={handleSetDraft}
-          onSubmitResult={handleSubmitResult}
           onOpenChange={(open) => {
             if (!open) closeSim();
           }}

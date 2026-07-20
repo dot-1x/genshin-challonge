@@ -53,11 +53,21 @@ function clone<T>(t: T): T {
   return JSON.parse(JSON.stringify(t)) as T;
 }
 
+function swapActor(step: DraftStep): DraftStep {
+  if (step.actor === "A") return { ...step, actor: "B" };
+  if (step.actor === "B") return { ...step, actor: "A" };
+  return step;
+}
+
 function buildSteps(stageCount: number): DraftStep[] {
   if (stageCount <= 1) return DRAFT_STEPS;
   const steps = [...PRE_STEPS];
   for (let i = 0; i < stageCount; i++) {
-    steps.push(...PER_STAGE_STEPS);
+    if (i % 2 === 0) {
+      steps.push(...PER_STAGE_STEPS);
+    } else {
+      steps.push(...PER_STAGE_STEPS.map(swapActor));
+    }
   }
   return steps;
 }

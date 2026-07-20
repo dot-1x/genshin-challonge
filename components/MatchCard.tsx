@@ -1,7 +1,6 @@
 "use client";
 
-import type { Match, Tournament, RosterUnit } from "@/lib/types";
-import { teamCost } from "@/lib/cost";
+import type { Match, Tournament } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
@@ -9,13 +8,11 @@ import { Lock } from "lucide-react";
 export function MatchCard({
   match,
   tournament,
-  rosterMap,
   onOpenDraft,
   onOpenRegistration,
 }: {
   match: Match;
   tournament: Tournament;
-  rosterMap: Map<string, RosterUnit>;
   onOpenDraft: () => void;
   onOpenRegistration: (playerId: string) => void;
 }) {
@@ -27,16 +24,6 @@ export function MatchCard({
     : null;
 
   const canOpen = !!match.playerAId && !!match.playerBId;
-
-  function getCost(playerId: string): number | null {
-    if (!match.draft) return null;
-    const slots = match.draft.fielded[playerId] ?? [];
-    if (slots.length === 0) return null;
-    return teamCost(slots, rosterMap, tournament.costConfig);
-  }
-
-  const costA = playerA ? getCost(playerA.id) : null;
-  const costB = playerB ? getCost(playerB.id) : null;
 
   return (
     <div
@@ -54,8 +41,6 @@ export function MatchCard({
         <PlayerSlot
           player={playerA ?? null}
           isWinner={match.winnerId === playerA?.id}
-          cost={costA}
-          maxCost={tournament.costConfig.maxCost}
           regCount={playerA?.registration.length ?? 0}
           locked={playerA?.locked ?? false}
           onClickName={() => playerA && onOpenRegistration(playerA.id)}
@@ -64,8 +49,6 @@ export function MatchCard({
         <PlayerSlot
           player={playerB ?? null}
           isWinner={match.winnerId === playerB?.id}
-          cost={costB}
-          maxCost={tournament.costConfig.maxCost}
           regCount={playerB?.registration.length ?? 0}
           locked={playerB?.locked ?? false}
           onClickName={() => playerB && onOpenRegistration(playerB.id)}
@@ -78,16 +61,12 @@ export function MatchCard({
 function PlayerSlot({
   player,
   isWinner,
-  cost,
-  maxCost,
   regCount,
   locked,
   onClickName,
 }: {
   player: { name: string; id: string } | null;
   isWinner: boolean;
-  cost: number | null;
-  maxCost: number;
   regCount: number;
   locked: boolean;
   onClickName: () => void;
@@ -124,14 +103,7 @@ function PlayerSlot({
         </span>
         {locked && <Lock className="size-3 text-muted-foreground shrink-0" />}
       </button>
-      {cost !== null ? (
-        <Badge
-          variant={cost > maxCost ? "destructive" : "secondary"}
-          className="text-xs shrink-0"
-        >
-          {cost}/{maxCost}
-        </Badge>
-      ) : regCount > 0 ? (
+      {regCount > 0 ? (
         <Badge variant="outline" className="text-xs shrink-0">
           {regCount}
         </Badge>

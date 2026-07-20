@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import type { Match, MatchSide, Tournament, RosterUnit } from "@/lib/types";
+import type { Match, MatchSide, Tournament } from "@/lib/types";
 import { MatchCard } from "@/components/MatchCard";
 
 const UNIT = 130;
@@ -18,12 +18,10 @@ function groupByRound(matches: Match[]): Map<number, Match[]> {
 
 export function BracketView({
   tournament,
-  rosterMap,
   onOpenDraft,
   onOpenRegistration,
 }: {
   tournament: Tournament;
-  rosterMap: Map<string, RosterUnit>;
   onOpenDraft: (matchId: string) => void;
   onOpenRegistration: (playerId: string) => void;
 }) {
@@ -54,7 +52,6 @@ export function BracketView({
             side="left"
             matches={matches}
             tournament={tournament}
-            rosterMap={rosterMap}
             columnHeight={columnHeight}
             onOpenDraft={onOpenDraft}
             onOpenRegistration={onOpenRegistration}
@@ -65,7 +62,6 @@ export function BracketView({
           <FinalColumn
             matches={finalMatches}
             tournament={tournament}
-            rosterMap={rosterMap}
             columnHeight={columnHeight}
             onOpenDraft={onOpenDraft}
             onOpenRegistration={onOpenRegistration}
@@ -78,7 +74,6 @@ export function BracketView({
             side="right"
             matches={matches}
             tournament={tournament}
-            rosterMap={rosterMap}
             columnHeight={columnHeight}
             onOpenDraft={onOpenDraft}
             onOpenRegistration={onOpenRegistration}
@@ -93,7 +88,6 @@ function BracketColumn({
   side,
   matches,
   tournament,
-  rosterMap,
   columnHeight,
   onOpenDraft,
   onOpenRegistration,
@@ -101,7 +95,6 @@ function BracketColumn({
   side: MatchSide;
   matches: Match[];
   tournament: Tournament;
-  rosterMap: Map<string, RosterUnit>;
   columnHeight: number;
   onOpenDraft: (matchId: string) => void;
   onOpenRegistration: (playerId: string) => void;
@@ -129,7 +122,6 @@ function BracketColumn({
               <MatchCard
                 match={m}
                 tournament={tournament}
-                rosterMap={rosterMap}
                 onOpenDraft={() => onOpenDraft(m.id)}
                 onOpenRegistration={onOpenRegistration}
               />
@@ -197,14 +189,12 @@ function Connectors({
 function FinalColumn({
   matches,
   tournament,
-  rosterMap,
   columnHeight,
   onOpenDraft,
   onOpenRegistration,
 }: {
   matches: Match[];
   tournament: Tournament;
-  rosterMap: Map<string, RosterUnit>;
   columnHeight: number;
   onOpenDraft: (matchId: string) => void;
   onOpenRegistration: (playerId: string) => void;
@@ -232,7 +222,6 @@ function FinalColumn({
             <MatchCard
               match={m}
               tournament={tournament}
-              rosterMap={rosterMap}
               onOpenDraft={() => onOpenDraft(m.id)}
               onOpenRegistration={onOpenRegistration}
             />

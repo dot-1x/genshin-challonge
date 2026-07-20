@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTournament } from "@/lib/store";
 import { useRoster } from "@/lib/roster";
 import { BracketView } from "@/components/BracketView";
 import { RegistrationModal } from "@/components/RegistrationModal";
-import { DraftModal } from "@/components/draft";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
@@ -26,19 +26,15 @@ export function TournamentView({ id }: { id: string }) {
     tournament,
     loaded,
     setRegistration,
-    beginDraft,
-    setDraft,
-    submitResult,
   } = useTournament(id);
   const {
     roster,
-    rosterMap,
     loading: rosterLoading,
     error: rosterError,
     refresh,
   } = useRoster();
+  const router = useRouter();
   const [regPlayerId, setRegPlayerId] = useState<string | null>(null);
-  const [draftMatchId, setDraftMatchId] = useState<string | null>(null);
 
   if (!loaded) {
     return (
@@ -60,19 +56,12 @@ export function TournamentView({ id }: { id: string }) {
   const regPlayer = regPlayerId
     ? tournament.players.find((p) => p.id === regPlayerId) ?? null
     : null;
-  const draftMatch = draftMatchId
-    ? tournament.matches.find((m) => m.id === draftMatchId) ?? null
-    : null;
   const champion = tournament.championId
     ? tournament.players.find((p) => p.id === tournament.championId)
     : null;
 
   function handleOpenDraft(matchId: string) {
-    const m = tournament!.matches.find((x) => x.id === matchId);
-    if (m && !m.draft && m.playerAId && m.playerBId) {
-      beginDraft(matchId);
-    }
-    setDraftMatchId(matchId);
+    router.push(`/t/${id}/draft/${matchId}`);
   }
 
   return (
@@ -141,7 +130,6 @@ export function TournamentView({ id }: { id: string }) {
         ) : (
           <BracketView
             tournament={tournament}
-            rosterMap={rosterMap}
             onOpenDraft={handleOpenDraft}
             onOpenRegistration={(playerId) => setRegPlayerId(playerId)}
           />
@@ -154,19 +142,6 @@ export function TournamentView({ id }: { id: string }) {
           roster={roster}
           onSave={(reg) => setRegistration(regPlayer.id, reg)}
           onOpenChange={(open) => !open && setRegPlayerId(null)}
-        />
-      )}
-
-      {draftMatch && (
-        <DraftModal
-          match={draftMatch}
-          tournament={tournament}
-          rosterMap={rosterMap}
-          onSetDraft={(draft) => setDraft(draftMatch.id, draft)}
-          onSubmitResult={(winnerId) =>
-            submitResult(draftMatch.id, winnerId)
-          }
-          onOpenChange={(open) => !open && setDraftMatchId(null)}
         />
       )}
     </main>
