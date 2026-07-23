@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useTournaments } from "@/lib/store";
+import { useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useTournaments, importTournament } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Plus, Trash2, Swords } from "lucide-react";
+import { Trophy, Plus, Trash2, Swords, Upload } from "lucide-react";
 import type { BracketType, TournamentType } from "@/lib/types";
+import { toast } from "sonner";
 
 function formatLabel(f: BracketType): string {
   return f === "double" ? "Double Elim" : "Single Elim";
@@ -25,8 +28,23 @@ function typeLabel(t: TournamentType): string {
 
 export default function Home() {
   const { list, loaded, remove } = useTournaments();
+  const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const sorted = [...list].sort((a, b) => b.createdAt - a.createdAt);
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const id = await importTournament(file);
+      toast.success("Tournament imported!");
+      router.push(`/t/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Import failed");
+    }
+    e.target.value = "";
+  }
 
   return (
     <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8">
@@ -39,10 +57,23 @@ export default function Home() {
             Bracket history & draft pick system
           </p>
         </div>
-        <Button render={<Link href="/new" />}>
-          <Plus className="size-4" />
-          New Tournament
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImport}
+          />
+          <Button variant="outline" onClick={() => fileRef.current?.click()}>
+            <Upload className="size-4" />
+            Import
+          </Button>
+          <Button render={<Link href="/new" />}>
+            <Plus className="size-4" />
+            New Tournament
+          </Button>
+        </div>
       </div>
 
       {!loaded ? (

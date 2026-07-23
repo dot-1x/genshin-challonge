@@ -88,6 +88,107 @@ export function deleteTournament(id: string) {
   saveAll(all.filter((t) => t.id !== id));
 }
 
+export function exportTournament(id: string) {
+  const all = loadAll();
+  const tournament = all.find((t) => t.id === id);
+  if (!tournament) return;
+  const json = JSON.stringify(tournament, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safeName = tournament.name.replace(/[^a-z0-9-_]/gi, "_");
+  a.download = `${safeName || "tournament"}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function importTournament(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string) as Tournament;
+        if (!parsed || typeof parsed !== "object") {
+          reject(new Error("Invalid JSON format"));
+          return;
+        }
+        if (!parsed.players || !parsed.matches || !parsed.id) {
+          reject(new Error("Missing required tournament fields"));
+          return;
+        }
+        const all = loadAll();
+        const existing = all.some((t) => t.id === parsed.id);
+        if (existing) {
+          const newId = uid();
+          const remapped = remapIds(parsed, newId);
+          saveAll([...all, remapped]);
+          resolve(newId);
+        } else {
+          saveAll([...all, parsed]);
+          resolve(parsed.id);
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsText(file);
+  });
+}
+
+function remapIds(t: Tournament, newId: string): Tournament {
+  const idMap = new Map<string, string>();
+  const newPlayers = t.players.map((p) => {
+    const np = uid();
+    idMap.set(p.id, np);
+    return { ...p, id: np };
+  });
+  const newMatches = t.matches.map((m) => {
+    const nm = uid();
+    return {
+      ...m,
+      id: nm,
+      playerAId: m.playerAId ? idMap.get(m.playerAId) ?? null : null,
+      playerBId: m.playerBId ? idMap.get(m.playerBId) ?? null : null,
+      winnerId: m.winnerId ? idMap.get(m.winnerId) ?? null : null,
+    };
+  });
+  const matchIdMap = new Map<string, string>();
+  t.matches.forEach((m, i) => matchIdMap.set(m.id, newMatches[i].id));
+  const fixedMatches = newMatches.map((m) => ({
+    ...m,
+    feedsInto: m.feedsInto ? matchIdMap.get(m.feedsInto) ?? null : null,
+    loserDropsTo: m.loserDropsTo ? matchIdMap.get(m.loserDropsTo) ?? null : null,
+  }));
+  const remappedDrafts = fixedMatches.map((m) => {
+    if (!m.draft) return m;
+    const d = m.draft;
+    return {
+      ...m,
+      draft: {
+        ...d,
+        matchPlayerIds: [
+          d.matchPlayerIds[0] ? idMap.get(d.matchPlayerIds[0]) ?? d.matchPlayerIds[0] : d.matchPlayerIds[0],
+          d.matchPlayerIds[1] ? idMap.get(d.matchPlayerIds[1]) ?? d.matchPlayerIds[1] : d.matchPlayerIds[1],
+        ] as [string, string],
+        playerAId: d.playerAId ? idMap.get(d.playerAId) ?? null : null,
+        playerBId: d.playerBId ? idMap.get(d.playerBId) ?? null : null,
+        winnerId: d.winnerId ? idMap.get(d.winnerId) ?? null : null,
+      },
+    };
+  });
+  return {
+    ...t,
+    id: newId,
+    players: newPlayers,
+    matches: remappedDrafts,
+    championId: t.championId ? idMap.get(t.championId) ?? null : null,
+  };
+}
+
 export function updateRegistration(
   tournamentId: string,
   playerId: string,

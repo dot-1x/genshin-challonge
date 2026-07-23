@@ -9,8 +9,10 @@ import { BracketView } from "@/components/BracketView";
 import { RegistrationModal } from "@/components/RegistrationModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trophy, RefreshCw, Download } from "lucide-react";
 import type { BracketType, TournamentType } from "@/lib/types";
+import { exportTournament } from "@/lib/store";
+import { toast } from "sonner";
 
 function formatLabel(f: BracketType): string {
   return f === "double" ? "Double Elim" : "Single Elim";
@@ -27,6 +29,12 @@ export function TournamentView({ id }: { id: string }) {
     loaded,
     setRegistration,
   } = useTournament(id);
+
+  function handleExport() {
+    if (!tournament) return;
+    exportTournament(tournament.id);
+    toast.success("Bracket exported");
+  }
   const {
     roster,
     loading: rosterLoading,
@@ -97,6 +105,10 @@ export function TournamentView({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="size-3" />
+              Export
+            </Button>
             {rosterLoading && !roster && (
               <span className="text-sm text-muted-foreground">
                 Loading roster...
