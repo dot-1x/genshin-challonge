@@ -71,6 +71,7 @@ export type DraftState = {
   stageIndex: number;
   stages: StageData[];
   winnerId: string | null;
+  finalizedStages?: Record<string, number[]>;
 };
 
 export type BracketType = "single" | "double";

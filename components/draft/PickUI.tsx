@@ -77,26 +77,13 @@ export function PickUI({
   const overBudget = projectedCost > costConfig.maxCost;
 
   const filledSlots = pickSlots.filter((s) => s.charUnitId).length;
-  const allHaveWeapons = pickSlots.every((s) => s.charUnitId && s.weaponUnitId);
-  const canConfirm = filledSlots === step.count && allHaveWeapons && !overBudget;
+  const canConfirm = filledSlots === step.count && !overBudget;
 
   function selectChar(unit: RosterUnit, cons: number) {
     const emptyIdx = pickSlots.findIndex((s) => !s.charUnitId);
     if (emptyIdx === -1) return;
     const next = [...pickSlots];
     next[emptyIdx] = { ...next[emptyIdx], charUnitId: unit.id, charCons: cons, weaponUnitId: null, refine: 1 };
-    setPickSlots(next);
-  }
-
-  function selectWeapon(slotIdx: number, weaponId: string) {
-    const next = [...pickSlots];
-    next[slotIdx] = { ...next[slotIdx], weaponUnitId: weaponId, refine: 1 };
-    setPickSlots(next);
-  }
-
-  function setRefine(slotIdx: number, refine: number) {
-    const next = [...pickSlots];
-    next[slotIdx] = { ...next[slotIdx], refine };
     setPickSlots(next);
   }
 
@@ -128,8 +115,6 @@ export function PickUI({
             rosterMap={rosterMap}
             costConfig={costConfig}
             onClear={clearSlot}
-            onSelectWeapon={selectWeapon}
-            onSetRefine={setRefine}
           />
         ))}
       </div>

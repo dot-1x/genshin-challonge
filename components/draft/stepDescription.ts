@@ -18,7 +18,7 @@ export function getStepDescription(
     case "char-ban":
       return `${actorName} — Char Ban: ban 1 char from ${oppName}'s fieldable pool${stage}`;
     case "pick":
-      return `${actorName} — Pick 2 characters + equip weapons${stage}`;
+      return `${actorName} — Pick 2 characters${stage}`;
     default:
       return "";
   }
