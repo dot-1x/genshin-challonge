@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   getCurrentStep,
   isDraftComplete,
+  isDraftFinalized,
   getActorPlayerId,
   getOpponentPlayerId,
   selectActorA,
@@ -27,8 +28,10 @@ import {
   getTotalSteps,
   getStageNames,
   createDraft,
+  setSlotWeapon,
+  finalizeStage,
 } from "@/lib/draft";
-import { ArrowLeft, Swords } from "lucide-react";
+import { ArrowLeft, Lock, Swords } from "lucide-react";
 import { StageSwitcher } from "./StageSwitcher";
 import { PlayerPanel } from "./PlayerPanel";
 import { SelectAUI } from "./SelectAUI";
@@ -146,6 +149,7 @@ export function DraftView({
 
   const step = getCurrentStep(draft, stageCount);
   const complete = isDraftComplete(draft, stageCount);
+  const finalized = isDraftFinalized(draft, stageCount);
 
   const actorId = step.actor ? getActorPlayerId(draft, step.actor) : null;
   const actorPlayer = actorId ? playerById.get(actorId) ?? null : null;
@@ -165,6 +169,31 @@ export function DraftView({
   function handleAction(newDraft: DraftState) {
     onSetDraft(newDraft);
   }
+
+  const handleSelectWeapon = (
+    playerId: string,
+    slotIdx: number,
+    weaponId: string,
+  ) => {
+    handleAction(setSlotWeapon(draft, playerId, slotIdx, weaponId, 1, costConfig, rosterMap));
+  };
+
+  const handleSetRefine = (
+    playerId: string,
+    slotIdx: number,
+    refine: number,
+  ) => {
+    const slots = draft.fielded[playerId] ?? [];
+    const current = slots[slotIdx];
+    if (!current || !current.weaponUnitId) return;
+    handleAction(
+      setSlotWeapon(draft, playerId, slotIdx, current.weaponUnitId, refine, costConfig, rosterMap),
+    );
+  };
+
+  const handleFinalizeStage = (playerId: string, stageIndex: number) => {
+    handleAction(finalizeStage(draft, playerId, stageIndex));
+  };
 
   return (
     <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 space-y-6">
@@ -221,6 +250,9 @@ export function DraftView({
             isActorA={draft.playerAId === p.id}
             isActorTurn={actorId === p.id && !complete}
             stageNames={stageNames}
+            onSelectWeapon={handleSelectWeapon}
+            onSetRefine={handleSetRefine}
+            onFinalizeStage={handleFinalizeStage}
           />
         ))}
       </div>
@@ -228,7 +260,7 @@ export function DraftView({
       <Separator />
 
       <div className="flex-1">
-        {complete ? (
+        {finalized ? (
           <WinnerSelection
             match={match}
             matchPlayers={matchPlayers}
@@ -260,6 +292,16 @@ export function DraftView({
               handleAction(applyCharBan(draft, unitId, stageCount))
             }
           />
+        ) : complete ? (
+          <div className="rounded-lg border bg-card p-6 flex flex-col items-center gap-2 text-center">
+            <Lock className="size-8 text-muted-foreground" />
+            <p className="font-medium">All picks are in</p>
+            <p className="text-sm text-muted-foreground">
+              Equip weapons in each player panel and press{" "}
+              <span className="font-medium">Confirm Final Draft</span> to lock
+              them in. Winner selection opens once every stage is finalized.
+            </p>
+          </div>
         ) : step.type === "pick" && actorPlayer ? (
           <PickUI
             actorPlayer={actorPlayer}

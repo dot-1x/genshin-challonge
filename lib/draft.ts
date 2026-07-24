@@ -1,9 +1,11 @@
 import type {
+  CostConfig,
   DraftState,
   FieldedSlot,
   Player,
   RosterUnit,
 } from "./types";
+import { teamCost } from "./cost";
 
 export type DraftStep = {
   type: "select-a" | "global-ban" | "char-ban" | "pick";
@@ -116,7 +118,95 @@ export function createDraft(matchPlayerIds: [string, string]): DraftState {
     stageIndex: 0,
     stages: [],
     winnerId: null,
+    finalizedStages: {
+      [matchPlayerIds[0]]: [],
+      [matchPlayerIds[1]]: [],
+    },
   };
+}
+
+function getFinalizedStages(state: DraftState, playerId: string): number[] {
+  return state.finalizedStages?.[playerId] ?? [];
+}
+
+export function isStageFinalized(
+  state: DraftState,
+  playerId: string,
+  stageIndex: number,
+): boolean {
+  return getFinalizedStages(state, playerId).includes(stageIndex);
+}
+
+export function isStageFullyPicked(
+  state: DraftState,
+  playerId: string,
+  stageIndex: number,
+): boolean {
+  const start = stageIndex * SLOTS_PER_STAGE;
+  const slots = (state.fielded[playerId] ?? []).slice(start, start + SLOTS_PER_STAGE);
+  return slots.length === SLOTS_PER_STAGE && slots.every((s) => s.charUnitId);
+}
+
+export function isStageEditable(
+  state: DraftState,
+  playerId: string,
+  stageIndex: number,
+): boolean {
+  return (
+    isStageFullyPicked(state, playerId, stageIndex) &&
+    !isStageFinalized(state, playerId, stageIndex)
+  );
+}
+
+export function finalizeStage(
+  state: DraftState,
+  playerId: string,
+  stageIndex: number,
+): DraftState {
+  if (isStageFinalized(state, playerId, stageIndex)) return clone(state);
+  const next = clone(state);
+  if (!next.finalizedStages) next.finalizedStages = {};
+  next.finalizedStages[playerId] = [
+    ...(next.finalizedStages[playerId] ?? []),
+    stageIndex,
+  ];
+  return next;
+}
+
+export function isDraftFinalized(
+  state: DraftState,
+  stageCount: number = 1,
+): boolean {
+  for (const pid of state.matchPlayerIds) {
+    for (let s = 0; s < stageCount; s++) {
+      if (!isStageFinalized(state, pid, s)) return false;
+    }
+  }
+  return true;
+}
+
+export function setSlotWeapon(
+  state: DraftState,
+  playerId: string,
+  slotIdx: number,
+  weaponUnitId: string,
+  refine: number,
+  costConfig: CostConfig,
+  roster: Map<string, RosterUnit>,
+): DraftState {
+  const stageIndex = Math.floor(slotIdx / SLOTS_PER_STAGE);
+  if (!isStageEditable(state, playerId, stageIndex)) return state;
+  const next = clone(state);
+  const slots = next.fielded[playerId] ?? [];
+  if (slotIdx < 0 || slotIdx >= slots.length) return state;
+  const trial = [...slots];
+  trial[slotIdx] = { ...trial[slotIdx], weaponUnitId, refine };
+  const start = stageIndex * SLOTS_PER_STAGE;
+  const stageSlots = trial.slice(start, start + SLOTS_PER_STAGE);
+  const projectedCost = teamCost(stageSlots, roster, costConfig);
+  if (projectedCost > costConfig.maxCost) return state;
+  next.fielded[playerId] = trial;
+  return next;
 }
 
 export function getCurrentStep(
