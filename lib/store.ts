@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import type {
   CostConfig,
   DraftState,
@@ -15,33 +15,25 @@ import { uid } from "./random";
 import { generateBracket } from "./bracket";
 import { applyResult } from "./advance";
 import { createDraft } from "./draft";
+import { createListStore } from "./persisted-list";
 
 const STORAGE_KEY = "gc_tournaments_v1";
-const emitter = new EventTarget();
+
+const { useStore, ensureHydrated, useHydrated } =
+  createListStore<Tournament>(STORAGE_KEY);
 
 function loadAll(): Tournament[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? (JSON.parse(data) as Tournament[]) : [];
-  } catch {
-    return [];
-  }
+  ensureHydrated();
+  return useStore.getState().list;
 }
 
 function saveAll(list: Tournament[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // ignore quota errors
-  }
-  emitter.dispatchEvent(new Event("change"));
+  ensureHydrated();
+  useStore.getState().setList(list);
 }
 
 function updateTournament(id: string, fn: (t: Tournament) => Tournament) {
-  const all = loadAll();
-  saveAll(all.map((t) => (t.id === id ? fn(t) : t)));
+  saveAll(loadAll().map((t) => (t.id === id ? fn(t) : t)));
 }
 
 export type CreateTournamentData = {
@@ -84,8 +76,7 @@ export function createTournament(data: CreateTournamentData): string {
 }
 
 export function deleteTournament(id: string) {
-  const all = loadAll();
-  saveAll(all.filter((t) => t.id !== id));
+  saveAll(loadAll().filter((t) => t.id !== id));
 }
 
 export function exportTournament(id: string) {
@@ -234,40 +225,19 @@ export function submitMatchResult(
 }
 
 export function useTournaments() {
-  const [state, setState] = useState<{
-    list: Tournament[];
-    loaded: boolean;
-  }>({ list: [], loaded: false });
-
-  useEffect(() => {
-    const handler = () => setState({ list: loadAll(), loaded: true });
-    handler();
-    emitter.addEventListener("change", handler);
-    return () => emitter.removeEventListener("change", handler);
-  }, []);
-
+  const loaded = useHydrated();
+  const list = useStore((s) => s.list);
   const remove = useCallback((id: string) => deleteTournament(id), []);
-  return { ...state, remove };
+  return { list, loaded, remove };
 }
 
 export function useTournament(id: string) {
-  const [state, setState] = useState<{
-    tournament: Tournament | null;
-    loaded: boolean;
-  }>({ tournament: null, loaded: false });
-
-  useEffect(() => {
-    const handler = () => {
-      const all = loadAll();
-      setState({
-        tournament: all.find((t) => t.id === id) ?? null,
-        loaded: true,
-      });
-    };
-    handler();
-    emitter.addEventListener("change", handler);
-    return () => emitter.removeEventListener("change", handler);
-  }, [id]);
+  const loaded = useHydrated();
+  // Selector subscribes to this tournament only: no re-render when other
+  // tournaments change (the object reference is stable unless updated).
+  const tournament = useStore(
+    (s) => s.list.find((t) => t.id === id) ?? null,
+  );
 
   const setRegistration = useCallback(
     (playerId: string, registration: RegisteredChar[]) =>
@@ -289,7 +259,7 @@ export function useTournament(id: string) {
   );
   const remove = useCallback(() => deleteTournament(id), [id]);
 
-  return { ...state, setRegistration, beginDraft, setDraft, submitResult, remove };
+  return { tournament, loaded, setRegistration, beginDraft, setDraft, submitResult, remove };
 }
 
 export { DEFAULT_COST_CONFIG };
